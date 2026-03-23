@@ -9,7 +9,30 @@ app = Flask(__name__)
 
 # === НАСТРОЙКИ ===
 VK_TOKEN = "vk1.a.qQya9h0rlJwXE4KaBW0A0xFONdJXgx-XmbfOk64uBHg6k5Q0bJ5YsYzS-amB3yjk154aLY-9ObaK6Z4U9CF_58Lc91TNAwP0PJEi9OdFk3XoXahBkIcHYPotniO4Ef2f5cmPY4nU_Rti5V5gnQWat3dtVw1ucz9EZsX_qOEooKC_1q6IQlbcvNRFhb5knd9tXJ75-zCUVhdTp7tkprTEEg"
+
+
+# Берём confirmation code из переменной окружения Railway
 CONFIRMATION_TOKEN = os.environ.get("CONFIRMATION_TOKEN")
+
+@app.route('/', methods=['POST'])
+def main():
+    data = request.get_json()
+    
+    # Если ВК проверяет сервер
+    if data['type'] == 'confirmation':
+        return CONFIRMATION_TOKEN  # ВК ждёт ровно эту строку
+    
+    # Если пришло сообщение от пользователя
+    if data['type'] == 'message_new':
+        # Тут можно добавить логику бота
+        return "ok"
+    
+    # Для любых других событий
+    return "ok"
+
+if __name__ == '__main__':
+    app.run()
+
 
 # === ДОСТУПЫ ===
 users = {
