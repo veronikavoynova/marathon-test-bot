@@ -6,9 +6,10 @@ import json
 app = Flask(__name__)
 
 # === НАСТРОЙКИ ===
-VK_TOKEN = "ТВОЙ_ТОКЕН"
-CONFIRMATION_TOKEN = "ТВОЙ_CONFIRMATION"
-
+VK_TOKEN = "vk1.a.qQya9h0rlJwXE4KaBW0A0xFONdJXgx-XmbfOk64uBHg6k5Q0bJ5YsYzS-amB3yjk154aLY-9ObaK6Z4U9CF_58Lc91TNAwP0PJEi9OdFk3XoXahBkIcHYPotniO4Ef2f5cmPY4nU_Rti5V5gnQWat3dtVw1ucz9EZsX_qOEooKC_1q6IQlbcvNRFhb5knd9tXJ75-zCUVhdTp7tkprTEEg"
+CONFIRMATION_TOKEN = "90f6e7cd"
+if data['type'] == 'confirmation':
+    return CONFIRMATION_TOKEN
 # === ДОСТУПЫ ===
 users = {
     123456: "marathon_1",
