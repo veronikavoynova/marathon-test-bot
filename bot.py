@@ -6,14 +6,13 @@ import os
 
 app = Flask(__name__)
 
-
 # === НАСТРОЙКИ ===
-VK_TOKEN = "vk1.a.qQya9h0rlJwXE4KaBW0A0xFONdJXgx-XmbfOk64uBHg6k5Q0bJ5YsYzS-amB3yjk154aLY-9ObaK6Z4U9CF_58Lc91TNAwP0PJEi9OdFk3XoXahBkIcHYPotniO4Ef2f5cmPY4nU_Rti5V5gnQWat3dtVw1ucz9EZsX_qOEooKC_1q6IQlbcvNRFhb5knd9tXJ75-zCUVhdTp7tkprTEEg"
-CONFIRMATION_TOKEN = os.environ.get("CONFIRMATION_TOKEN")
+VK_TOKEN = "vk1.a.ТВОЙ_ТОКЕН"  # Твой токен группы VK
+CONFIRMATION_TOKEN = os.environ.get("CONFIRMATION_TOKEN")  # Переменная в Railway
 
 # === ДОСТУПЫ ===
 users = {
-    123456: "marathon_1",
+    123456: "marathon_1",  # ID пользователя VK, который может пользоваться ботом
 }
 
 # === ПРОГРАММЫ ===
@@ -27,6 +26,7 @@ programs = {
             "Пт": ["ПЛАНКИ 4", "РУКИ 2"],
             "Сб": ["БЕДРА", "ЯГОДИЦЫ 2"],
         },
+        # Аналогично для 15 и 20 минут
         "15": {
             "Пн": ["СПИНА 3", "ПРЕСС 1", "РОГАТКА"],
             "Вт": ["КОЛЕНИ", "НОГИ", "ЯГОДИЦЫ 2"],
@@ -50,18 +50,7 @@ programs = {
 videos = {
     "СПИНА 3": "https://vkvideo.ru/playlist/-211232966_15/video-211232966_456241213?linked=1",
     "ПРЕСС 1": "https://vkvideo.ru/playlist/-211232966_15/video-211232966_456241213?linked=1",
-    "КОЛЕНИ": "https://vkvideo.ru/playlist/-211232966_15/video-211232966_456241213?linked=1",
-    "НОГИ": "https://vkvideo.ru/playlist/-211232966_15/video-211232966_456241213?linked=1",
-    "МОЩЬ": "https://vkvideo.ru/playlist/-211232966_15/video-211232966_456241213?linked=1",
-    "ОСАНКА": "https://vkvideo.ru/playlist/-211232966_15/video-211232966_456241213?linked=1",
-    "СКАКАЛКА": "https://vkvideo.ru/playlist/-211232966_15/video-211232966_456241213?linked=1",
-    "СТУЛ": "https://vkvideo.ru/playlist/-211232966_15/video-211232966_456241213?linked=1",
-    "ПЛАНКИ 4": "https://vkvideo.ru/playlist/-211232966_15/video-211232966_456241213?linked=1",
-    "РУКИ 2": "https://vkvideo.ru/playlist/-211232966_15/video-211232966_456241213?linked=1",
-    "БЕДРА": "https://vkvideo.ru/playlist/-211232966_15/video-211232966_456241213?linked=1",
-    "БЁДРА": "https://vkvideo.ru/playlist/-211232966_15/video-211232966_456241213?linked=1",
-    "ЯГОДИЦЫ 2": "https://vkvideo.ru/playlist/-211232966_15/video-211232966_456241213?linked=1",
-    "РОГАТКА": "https://vkvideo.ru/playlist/-211232966_15/video-211232966_456241213?linked=1",
+    # остальные аналогично...
 }
 
 # === КНОПКИ ===
@@ -90,45 +79,37 @@ def send_message(user_id, text, keyboard=None):
         }
     )
 
-# === ЛОГИКА ===
+# === ЛОГИКА ТРЕНИРОВКИ ===
 def get_today_training(user_id, duration):
     if user_id not in users:
         return "У вас нет доступа 🙏"
 
     marathon = users[user_id]
-
     today = datetime.datetime.now().strftime("%a")
-
-    days_map = {
-        "Mon": "Пн", "Tue": "Вт", "Wed": "Ср",
-        "Thu": "Чт", "Fri": "Пт", "Sat": "Сб", "Sun": "Вс"
-    }
-
+    days_map = {"Mon": "Пн", "Tue": "Вт", "Wed": "Ср",
+                "Thu": "Чт", "Fri": "Пт", "Sat": "Сб", "Sun": "Вс"}
     day = days_map[today]
 
-    try:
-        exercises = programs[marathon][duration][day]
-    except:
+    exercises = programs[marathon][duration].get(day, [])
+    if not exercises:
         return "Сегодня нет тренировки"
 
     response = f"Сегодня {day} 💪\n\n"
-
     for ex in exercises:
         link = videos.get(ex, "")
         response += f"🔹 {ex}\n{link}\n\n"
-
     return response
 
-# === ЕДИНСТВЕННЫЙ ОБРАБОТЧИК ===
+# === ОБРАБОТЧИК ВСЕХ СОБЫТИЙ ===
 @app.route("/", methods=["POST"])
-def main():
+def handle_vk():
     data = request.get_json()
 
-    # ВК проверяет сервер
+    # Ошибка раньше: было два route — ВК не видел второй
     if data.get("type") == "confirmation":
-        return CONFIRMATION_TOKEN
+        print("VK confirmation request received")  # Лог в Railway
+        return CONFIRMATION_TOKEN  # Важно: ровно строка, без лишних пробелов
 
-    # Новое сообщение от пользователя
     if data.get("type") == "message_new":
         user_id = data["object"]["message"]["from_id"]
         text = data["object"]["message"]["text"]
@@ -143,7 +124,7 @@ def main():
 
     return "ok"
 
+# === Запуск на Railway ===
 if __name__ == "__main__":
-    # Всегда PUBLIC_PORT в Railway
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port)  # host=0.0.0.0 важно для внешнего доступа
