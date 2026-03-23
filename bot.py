@@ -7,12 +7,13 @@ import os
 app = Flask(__name__)
 
 # === НАСТРОЙКИ ===
-VK_TOKEN = "vk1.a.qQya9h0rlJwXE4KaBW0A0xFONdJXgx-XmbfOk64uBHg6k5Q0bJ5YsYzS-amB3yjk154aLY-9ObaK6Z4U9CF_58Lc91TNAwP0PJEi9OdFk3XoXahBkIcHYPotniO4Ef2f5cmPY4nU_Rti5V5gnQWat3dtVw1ucz9EZsX_qOEooKC_1q6IQlbcvNRFhb5knd9tXJ75-zCUVhdTp7tkprTEEg"  # Твой токен группы VK
-CONFIRMATION_TOKEN = os.environ.get("CONFIRMATION_TOKEN")  # Переменная в Railway
+VK_TOKEN = os.environ.get("VK_TOKEN")  # Токен группы VK
+CONFIRMATION_TOKEN = os.environ.get("CONFIRMATION_TOKEN")  # Код подтверждения
 
-# === ДОСТУПЫ ===
+# === ПОЛЬЗОВАТЕЛИ ===
+# Здесь id участников и какой марафон им доступен
 users = {
-    123456: "marathon_1",  # ID пользователя VK, который может пользоваться ботом
+    123456: "marathon_1",  # пример: VK user_id -> марафон
 }
 
 # === ПРОГРАММЫ ===
@@ -26,7 +27,6 @@ programs = {
             "Пт": ["ПЛАНКИ 4", "РУКИ 2"],
             "Сб": ["БЕДРА", "ЯГОДИЦЫ 2"],
         },
-        # Аналогично для 15 и 20 минут
         "15": {
             "Пн": ["СПИНА 3", "ПРЕСС 1", "РОГАТКА"],
             "Вт": ["КОЛЕНИ", "НОГИ", "ЯГОДИЦЫ 2"],
@@ -47,11 +47,9 @@ programs = {
 }
 
 # === ВИДЕО ===
-videos = {
-    "СПИНА 3": "https://vkvideo.ru/playlist/-211232966_15/video-211232966_456241213?linked=1",
-    "ПРЕСС 1": "https://vkvideo.ru/playlist/-211232966_15/video-211232966_456241213?linked=1",
-    # остальные аналогично...
-}
+videos = {ex: "https://vkvideo.ru/playlist/-211232966_15/video-211232966_456241213?linked=1"
+          for ex in ["СПИНА 3","ПРЕСС 1","КОЛЕНИ","НОГИ","МОЩЬ","ОСАНКА",
+                     "СКАКАЛКА","СТУЛ","ПЛАНКИ 4","РУКИ 2","БЕДРА","БЁДРА","ЯГОДИЦЫ 2","РОГАТКА"]}
 
 # === КНОПКИ ===
 def get_keyboard():
@@ -79,44 +77,44 @@ def send_message(user_id, text, keyboard=None):
         }
     )
 
-# === ЛОГИКА ТРЕНИРОВКИ ===
+# === ЛОГИКА ТРЕНИРОВОК ===
 def get_today_training(user_id, duration):
     if user_id not in users:
         return "У вас нет доступа 🙏"
-
     marathon = users[user_id]
+
     today = datetime.datetime.now().strftime("%a")
-    days_map = {"Mon": "Пн", "Tue": "Вт", "Wed": "Ср",
-                "Thu": "Чт", "Fri": "Пт", "Sat": "Сб", "Sun": "Вс"}
+    days_map = {"Mon":"Пн","Tue":"Вт","Wed":"Ср","Thu":"Чт","Fri":"Пт","Sat":"Сб","Sun":"Вс"}
     day = days_map[today]
 
-    exercises = programs[marathon][duration].get(day, [])
+    exercises = programs.get(marathon, {}).get(duration, {}).get(day, [])
     if not exercises:
         return "Сегодня нет тренировки"
 
     response = f"Сегодня {day} 💪\n\n"
     for ex in exercises:
-        link = videos.get(ex, "")
-        response += f"🔹 {ex}\n{link}\n\n"
+        response += f"🔹 {ex}\n{videos.get(ex, '')}\n\n"
     return response
 
 # === ОБРАБОТЧИК ВСЕХ СОБЫТИЙ ===
 @app.route("/", methods=["POST"])
-def handle_vk():
+def main_handler():
     data = request.get_json()
+    print("Received:", data)  # Логируем для Railway
 
-    # Ошибка раньше: было два route — ВК не видел второй
+    # Confirmation VK
     if data.get("type") == "confirmation":
-        print("VK confirmation request received")  # Лог в Railway
-        return CONFIRMATION_TOKEN  # Важно: ровно строка, без лишних пробелов
+        return CONFIRMATION_TOKEN
 
+    # Новое сообщение
     if data.get("type") == "message_new":
-        user_id = data["object"]["message"]["from_id"]
-        text = data["object"]["message"]["text"]
+        obj = data["object"]["message"]
+        user_id = obj["from_id"]
+        text = obj["text"]
 
         if text.lower() in ["начать", "start"]:
             send_message(user_id, "Выбери длительность тренировки 👇", get_keyboard())
-        elif text in ["10", "15", "20"]:
+        elif text in ["10","15","20"]:
             reply = get_today_training(user_id, text)
             send_message(user_id, reply)
         else:
@@ -124,7 +122,6 @@ def handle_vk():
 
     return "ok"
 
-# === Запуск на Railway ===
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)  # host=0.0.0.0 важно для внешнего доступа
+    app.run(host="0.0.0.0", port=port)
