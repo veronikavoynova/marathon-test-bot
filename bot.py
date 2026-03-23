@@ -47,20 +47,49 @@ programs = {
 
 # === ВИДЕО ===
 videos = {ex: "https://vkvideo.ru/playlist/-211232966_15/video-211232966_456241213?linked=1"
-          for ex in ["СПИНА 3","ПРЕСС 1","КОЛЕНИ","НОГИ","МОЩЬ","ОСАНКА",
-                     "СКАКАЛКА","СТУЛ","ПЛАНКИ 4","РУКИ 2","БЁДРА","ЯГОДИЦЫ 2","РОГАТКА"]}
+          for ex in ["СПИНА 3", "ПРЕСС 1", "КОЛЕНИ", "НОГИ", "МОЩЬ", "ОСАНКА",
+                     "СКАКАЛКА", "СТУЛ", "ПЛАНКИ 4", "РУКИ 2", "БЁДРА", "ЯГОДИЦЫ 2", "РОГАТКА"]}
 
-# === КНОПКИ ===
-def get_keyboard():
+DAYS_ORDER = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб"]
+DAYS_MAP = {"Mon": "Пн", "Tue": "Вт", "Wed": "Ср", "Thu": "Чт", "Fri": "Пт", "Sat": "Сб", "Sun": "Вс"}
+
+
+# === КЛАВИАТУРЫ ===
+
+def get_main_keyboard():
+    """Главная клавиатура — выбор тренировки на сегодня или расписание."""
     keyboard = {
-        "one_time": True,
+        "one_time": False,
         "buttons": [
-            [{"action": {"type": "text", "label": "10"}}],
-            [{"action": {"type": "text", "label": "15"}}],
-            [{"action": {"type": "text", "label": "20"}}]
+            [
+                {"action": {"type": "text", "label": "10 мин"}},
+                {"action": {"type": "text", "label": "15 мин"}},
+                {"action": {"type": "text", "label": "20 мин"}},
+            ],
+            [
+                {"action": {"type": "text", "label": "📅 Расписание на неделю"}},
+            ]
         ]
     }
     return json.dumps(keyboard, ensure_ascii=False)
+
+def get_schedule_keyboard():
+    """Клавиатура выбора программы для расписания."""
+    keyboard = {
+        "one_time": False,
+        "buttons": [
+            [
+                {"action": {"type": "text", "label": "📅 10 мин"}},
+                {"action": {"type": "text", "label": "📅 15 мин"}},
+                {"action": {"type": "text", "label": "📅 20 мин"}},
+            ],
+            [
+                {"action": {"type": "text", "label": "← Назад"}},
+            ]
+        ]
+    }
+    return json.dumps(keyboard, ensure_ascii=False)
+
 
 # === ОТПРАВКА СООБЩЕНИЯ ===
 def send_message(user_id, text, keyboard=None):
@@ -76,15 +105,14 @@ def send_message(user_id, text, keyboard=None):
     response = requests.post("https://api.vk.com/method/messages.send", params=params)
     print("VK response:", response.json())
 
-# === ЛОГИКА ТРЕНИРОВОК ===
+
+# === ТРЕНИРОВКА НА СЕГОДНЯ ===
 def get_today_training(user_id, duration):
     if user_id not in users:
         return "У вас нет доступа 🙏"
     marathon = users[user_id]
 
-    today = datetime.datetime.now().strftime("%a")
-    days_map = {"Mon":"Пн","Tue":"Вт","Wed":"Ср","Thu":"Чт","Fri":"Пт","Sat":"Сб","Sun":"Вс"}
-    day = days_map.get(today)
+    day = DAYS_MAP.get(datetime.datetime.now().strftime("%a"))
 
     if day == "Вс":
         return "😴 Воскресенье — день отдыха. Восстанавливайся!"
@@ -93,10 +121,36 @@ def get_today_training(user_id, duration):
     if not exercises:
         return "Сегодня нет тренировки"
 
-    response = f"Сегодня {day} 💪\n\n"
+    response = f"Сегодня {day} 💪\nПрограмма: {duration} минут\n\n"
     for ex in exercises:
         response += f"🔹 {ex}\n{videos.get(ex, 'ссылка не найдена')}\n\n"
     return response
+
+
+# === РАСПИСАНИЕ НА НЕДЕЛЮ ===
+def get_week_schedule(user_id, duration):
+    if user_id not in users:
+        return "У вас нет доступа 🙏"
+    marathon = users[user_id]
+
+    today = DAYS_MAP.get(datetime.datetime.now().strftime("%a"))
+    schedule = programs.get(marathon, {}).get(duration, {})
+
+    response = f"📅 Расписание на неделю ({duration} мин)\n\n"
+    for day in DAYS_ORDER:
+        exercises = schedule.get(day, [])
+        marker = " ← сегодня" if day == today else ""
+        if exercises:
+            response += f"{day}{marker}:\n"
+            for ex in exercises:
+                response += f"  • {ex}\n"
+        else:
+            response += f"{day}: нет тренировки\n"
+        response += "\n"
+
+    response += "Воскресенье: день отдыха 😴"
+    return response
+
 
 # === ОБРАБОТЧИК СОБЫТИЙ ===
 @app.route("/", methods=["POST"])
@@ -108,25 +162,52 @@ def main_handler():
     print("TOKEN:", VK_TOKEN[:10] if VK_TOKEN else "НЕТ ТОКЕНА")
     print("Received:", data)
 
-    # Подтверждение сервера для ВКонтакте
     if data.get("type") == "confirmation":
         return make_response(CONFIRMATION_TOKEN, 200)
 
-    # Новое сообщение
     if data.get("type") == "message_new":
         obj = data["object"]["message"]
         user_id = obj["from_id"]
         text = obj["text"].strip()
 
+        # Приветствие
         if text.lower() in ["начать", "start"]:
-            send_message(user_id, "Выбери длительность тренировки 👇", get_keyboard())
-        elif text in ["10", "15", "20"]:
-            reply = get_today_training(user_id, text)
-            send_message(user_id, reply)
+            send_message(user_id,
+                "Привет! 👋 Выбери длительность тренировки на сегодня "
+                "или посмотри расписание на всю неделю 👇",
+                get_main_keyboard())
+
+        # Тренировка на сегодня
+        elif text in ["10 мин", "15 мин", "20 мин"]:
+            duration = text.replace(" мин", "")
+            reply = get_today_training(user_id, duration)
+            send_message(user_id, reply, get_main_keyboard())
+
+        # Переход к расписанию — меняем клавиатуру
+        elif text == "📅 Расписание на неделю":
+            send_message(user_id,
+                "Выбери программу для расписания 👇",
+                get_schedule_keyboard())
+
+        # Расписание на неделю по программе
+        elif text in ["📅 10 мин", "📅 15 мин", "📅 20 мин"]:
+            duration = text.replace("📅 ", "").replace(" мин", "")
+            reply = get_week_schedule(user_id, duration)
+            send_message(user_id, reply, get_main_keyboard())
+
+        # Назад — возвращаем главную клавиатуру
+        elif text == "← Назад":
+            send_message(user_id,
+                "Выбери тренировку на сегодня 👇",
+                get_main_keyboard())
+
         else:
-            send_message(user_id, "Напиши «начать» чтобы выбрать тренировку 👇")
+            send_message(user_id,
+                "Выбери тренировку на сегодня 👇",
+                get_main_keyboard())
 
     return make_response("ok", 200)
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
