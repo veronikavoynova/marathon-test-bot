@@ -12,7 +12,7 @@ CONFIRMATION_TOKEN = os.environ.get("CONFIRMATION_TOKEN")
 
 # === ПОЛЬЗОВАТЕЛИ ===
 users = {
-    123456: "marathon_1",
+    37137530: "marathon_1",
 }
 
 # === ПРОГРАММЫ ===
@@ -104,6 +104,7 @@ def main_handler():
     if not data:
         return make_response("ok", 200)
 
+    print("TOKEN:", VK_TOKEN[:10] if VK_TOKEN else "НЕТ ТОКЕНА")
     print("Received:", data)
 
     # Подтверждение сервера для ВКонтакте
