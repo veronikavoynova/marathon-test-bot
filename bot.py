@@ -9,30 +9,7 @@ app = Flask(__name__)
 
 # === НАСТРОЙКИ ===
 VK_TOKEN = "vk1.a.qQya9h0rlJwXE4KaBW0A0xFONdJXgx-XmbfOk64uBHg6k5Q0bJ5YsYzS-amB3yjk154aLY-9ObaK6Z4U9CF_58Lc91TNAwP0PJEi9OdFk3XoXahBkIcHYPotniO4Ef2f5cmPY4nU_Rti5V5gnQWat3dtVw1ucz9EZsX_qOEooKC_1q6IQlbcvNRFhb5knd9tXJ75-zCUVhdTp7tkprTEEg"
-
-
-# Берём confirmation code из переменной окружения Railway
 CONFIRMATION_TOKEN = os.environ.get("CONFIRMATION_TOKEN")
-
-@app.route('/', methods=['POST'])
-def main():
-    data = request.get_json()
-    
-    # Если ВК проверяет сервер
-    if data['type'] == 'confirmation':
-        return CONFIRMATION_TOKEN  # ВК ждёт ровно эту строку
-    
-    # Если пришло сообщение от пользователя
-    if data['type'] == 'message_new':
-        # Тут можно добавить логику бота
-        return "ok"
-    
-    # Для любых других событий
-    return "ok"
-
-if __name__ == '__main__':
-    app.run()
-
 
 # === ДОСТУПЫ ===
 users = {
@@ -142,29 +119,31 @@ def get_today_training(user_id, duration):
 
     return response
 
-# === ОБРАБОТКА СОБЫТИЙ ===
+# === ЕДИНСТВЕННЫЙ ОБРАБОТЧИК ===
 @app.route("/", methods=["POST"])
 def main():
-    data = request.json
+    data = request.get_json()
 
-    if data["type"] == "confirmation":
+    # ВК проверяет сервер
+    if data.get("type") == "confirmation":
         return CONFIRMATION_TOKEN
 
-    if data["type"] == "message_new":
+    # Новое сообщение от пользователя
+    if data.get("type") == "message_new":
         user_id = data["object"]["message"]["from_id"]
         text = data["object"]["message"]["text"]
 
         if text.lower() in ["начать", "start"]:
             send_message(user_id, "Выбери длительность тренировки 👇", get_keyboard())
-
         elif text in ["10", "15", "20"]:
             reply = get_today_training(user_id, text)
             send_message(user_id, reply)
-
         else:
             send_message(user_id, "Напиши 'начать'")
 
     return "ok"
 
 if __name__ == "__main__":
-    app.run(port=5000)
+    # Всегда PUBLIC_PORT в Railway
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
