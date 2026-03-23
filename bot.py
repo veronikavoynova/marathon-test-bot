@@ -73,7 +73,8 @@ def send_message(user_id, text, keyboard=None):
     }
     if keyboard:
         params["keyboard"] = keyboard
-    requests.post("https://api.vk.com/method/messages.send", params=params)
+    response = requests.post("https://api.vk.com/method/messages.send", params=params)
+    print("VK response:", response.json())
 
 # === ЛОГИКА ТРЕНИРОВОК ===
 def get_today_training(user_id, duration):
