@@ -232,8 +232,8 @@ def get_week_schedule(user_id, duration):
     user = data.get("users", {}).get(str(user_id))
     print(f"User lookup: {user_id} -> {user}")
     print(f"All users: {list(data.get('users', {}).keys())}")
-if not user:
-    return "У вас нет доступа 🙏"
+    if not user:
+        return "У вас нет доступа 🙏"
 
     marathon_id = user["marathon"]
     week = get_current_week(marathon_id)
