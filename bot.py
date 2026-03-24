@@ -230,8 +230,8 @@ def get_today_training(user_id, duration):
 def get_week_schedule(user_id, duration):
     data = load_data()
     user = data.get("users", {}).get(str(user_id))
-print(f"User lookup: {user_id} -> {user}")
-print(f"All users: {list(data.get('users', {}).keys())}")
+    print(f"User lookup: {user_id} -> {user}")
+    print(f"All users: {list(data.get('users', {}).keys())}")
 if not user:
     return "У вас нет доступа 🙏"
 
