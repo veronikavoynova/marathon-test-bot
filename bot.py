@@ -113,6 +113,25 @@ def get_main_keyboard():
     }
     return json.dumps(keyboard, ensure_ascii=False)
 
+def get_main_keyboard_admin():
+    keyboard = {
+        "one_time": False,
+        "buttons": [
+            [
+                {"action": {"type": "text", "label": "10 мин"}},
+                {"action": {"type": "text", "label": "15 мин"}},
+                {"action": {"type": "text", "label": "20 мин"}},
+            ],
+            [
+                {"action": {"type": "text", "label": "📅 Расписание на неделю"}},
+            ],
+            [
+                {"action": {"type": "text", "label": "🔧 Админ меню"}},
+            ]
+        ]
+    }
+    return json.dumps(keyboard, ensure_ascii=False)
+
 def get_schedule_keyboard():
     keyboard = {
         "one_time": False,
@@ -370,8 +389,9 @@ def handle_admin_dialog(user_id, text):
     # Главная
     if text == "🏠 Главная":
         admin_states.pop(user_id, None)
-        send_message(user_id, "Главное меню 👇", get_main_keyboard())
+        send_message(user_id, "Главное меню 👇", get_main_keyboard_admin())
         return True
+
 
     # --- УЧАСТНИКИ ---
     if text == "👥 Участники":
@@ -637,33 +657,10 @@ def main_handler():
 
         # Обычные команды для всех
         if text.lower() in ["начать", "start"]:
-            msg = "Привет! 👋 Выбери тренировку на сегодня 👇"
-            keyboard = get_main_keyboard()
-            # Если это админ — добавляем кнопку входа в панель
             if is_admin(user_id):
-                kb = json.loads(get_main_keyboard())
-                kb["buttons"].append([{"action": {"type": "text", "label": "🔧 Админ меню"}}])
-                keyboard = json.dumps(kb, ensure_ascii=False)
-            send_message(user_id, msg, keyboard)
-
-        elif text in ["10 мин", "15 мин", "20 мин"]:
-            duration = text.replace(" мин", "")
-            reply = get_today_training(user_id, duration)
-            send_message(user_id, reply, get_main_keyboard())
-
-        elif text == "📅 Расписание на неделю":
-            send_message(user_id, "Выбери программу 👇", get_schedule_keyboard())
-
-        elif text in ["📅 10 мин", "📅 15 мин", "📅 20 мин"]:
-            duration = text.replace("📅 ", "").replace(" мин", "")
-            reply = get_week_schedule(user_id, duration)
-            send_message(user_id, reply, get_main_keyboard())
-
-        elif text == "← Назад":
-            send_message(user_id, "Выбери тренировку 👇", get_main_keyboard())
-
-        else:
-            send_message(user_id, "Выбери тренировку 👇", get_main_keyboard())
+                send_message(user_id, "Привет! 👋 Выбери тренировку на сегодня 👇", get_main_keyboard_admin())
+            else:
+                send_message(user_id, "Привет! 👋 Выбери тренировку на сегодня 👇", get_main_keyboard())
 
     return make_response("ok", 200)
 

@@ -1,0 +1,22 @@
+{
+  "admins": [
+    37137530
+  ],
+  "marathons": {
+    "марафон_1": {
+      "name": "Силовой марафон #1",
+      "start_date": "2025-05-01",
+      "weeks_base": 4,
+      "weeks_vip": 5
+    }
+  },
+  "users": {
+    "37137530": {
+      "name": "Администратор",
+      "marathon": "марафон_1",
+      "tariff": "vip"
+    }
+  },
+  "videos": {},
+  "schedule": {}
+}
