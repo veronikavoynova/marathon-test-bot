@@ -195,6 +195,8 @@ def send_message(user_id, text, keyboard=None):
 
 def get_today_training(user_id, duration):
     data = load_data()
+    print(f"Ищем пользователя: '{str(user_id)}'")
+    print(f"Все пользователи в файле: {list(data.get('users', {}).keys())}")
     user = data.get("users", {}).get(str(user_id))
     if not user:
         return "У вас нет доступа 🙏"
