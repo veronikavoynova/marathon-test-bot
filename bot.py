@@ -33,7 +33,9 @@ def load_data():
         y = get_disk()
         y.download(DISK_PATH, LOCAL_PATH)
         with open(LOCAL_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
+            content = f.read()
+            print(f"Содержимое файла (первые 200 символов): {content[:200]}")
+            return json.loads(content)
     except Exception as e:
         print(f"ОШИБКА загрузки данных: {type(e).__name__}: {e}")
         return {"admins": [], "marathons": {}, "users": {}, "videos": {}, "schedule": {}}
