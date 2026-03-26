@@ -35,9 +35,9 @@ def load_data():
         with open(LOCAL_PATH, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
-        print(f"Ошибка загрузки данных: {e}")
+        print(f"ОШИБКА загрузки данных: {type(e).__name__}: {e}")
         return {"admins": [], "marathons": {}, "users": {}, "videos": {}, "schedule": {}}
-
+    
 def save_data(data):
     """Сохраняет data.json на Яндекс Диск."""
     try:
